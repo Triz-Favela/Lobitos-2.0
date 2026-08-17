@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* Target & Módulos */
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+
+    /* Pastas de Entrada e Saída */
+    "rootDir": "src",
+    "outDir": "dist",
+
+    /* Verificação Estrita de Tipos */
+    "strict": true,
+    "alwaysStrict": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+
+    /* Qualidade de Código & Segurança */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+
+    /* Emissão de Arquivos / Mapeamento */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    /* Decorators (NestJS / TypeORM / Prisma / Drizzle) */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* Outras Otimizações */
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "pretty": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
