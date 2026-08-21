@@ -1,8 +1,3 @@
-// Define os tipos especificos pra estrtura das salas
-
-// FIXME: MUdar de um arquivo monolitico pra uma pasta de arquivos que declaram tipos 
-// pra cada ocasião diferente
-
 const roles = ["OVELHA", "LOBO", "SAO_BERNARDO"] as const
 type role = typeof roles[number]
 
@@ -26,10 +21,10 @@ interface Room {
   player_quantity: number
   host: string
   players: Record<string, Player>,
-  roles: role[],
+  roles: ConfigRole[],
   votes: vote[],
   chat: message[],
-  turn: number
+  round: number
 }
 
 interface TreatedRoom {
@@ -41,21 +36,28 @@ interface TreatedRoom {
     players: Record<string, TreatedPlayer>
 }
 
+type ConfigRole = {
+    name: role
+    quantity: number
+}
 
-// TODO: Fazer o RoomConfig interface
-interface RoomConfig {}
+interface RoomConfig {
+    privacy: privacy
+    roles: ConfigRole[]
+}
+
 
 // E aqui, os tipos especificos e a estrutura do objeto do jogador
 
-const player_effects = ["MATAR", "SALVAR"] as const
+const player_effects = ["KILL", "PROTECT"] as const
 type player_effect = typeof player_effects[number]
-type player_state = "READY" | "NOT_READY"
+type player_state = "READY" | "NOT_READY" | "DEAD"
 
 interface Player {
   id: string
   socket_id: string
   name: string
-  role: role
+  role: role | null
   player_state: player_state
   player_effect: player_effect[] 
 }
@@ -67,7 +69,9 @@ interface TreatedPlayer {
     player_state: player_state
 }
 
+
 export { 
     Room, Player, 
-    TreatedRoom, TreatedPlayer
+    TreatedRoom, TreatedPlayer,
+    RoomConfig
 }

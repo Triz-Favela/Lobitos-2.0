@@ -1,7 +1,7 @@
-import { Room } from "./CustomTypes"
+import { Room } from "../types/Rooms"
 
 const Roles = {
-    Lobo:{
+    "LOBO":{
         name: "Lobo",
         description: 
             "O lobo em pele de cordeiro, seu objetivo é se alimentar do "+
@@ -11,22 +11,23 @@ const Roles = {
             try{
                 const Target = Room.players[TargetID]
                 if(!Target){
-                    return {erro: "Jogador "+TargetID+" não existe na sala: "+ Room.code}
+                    throw new Error("Jogador "+TargetID+" não existe na sala: "+ Room.code)
                 }
-                if(Target.player_state.toUpperCase() == "MORTO"){
-                    return {erro: "Jogador "+Target.name+" ja esta morto"}
+                if(Target.player_state.toUpperCase() == "DEAD"){
+                    throw new Error("Jogador "+Target.name+" ja esta morto")
                 }
-                if(exports.Funcoes[Target.role].equipe.toUpperCase() == "LOBOS"){
-                    return {erro: "Lobo não pode atacar alguem da propria equipe"}
+                if(Target.role && Roles[Target.role].team.toUpperCase() == "LOBOS"){
+                    throw new Error("Lobo não pode atacar alguem da propria equipe")
                 }
-                Target.player_effect.push("MATAR") //Adicionar "MATAR" na lista de efeitos do jogador
+                Target.player_effect.push("KILL") //Adicionar "KILL" na lista de efeitos do jogador
                 return { ok: true }
-            }catch(erro){
-                return erro
+            }catch(error){
+                console.log(error)
+                return error
             }
         }
     },
-    Ovelha:{
+    "OVELHA":{
         name: "Ovelha",
         description: 
             "Você faz parte do rebanho, seu objetivo é descobrir quem é o lobo, "+
@@ -34,8 +35,8 @@ const Roles = {
         team: "Rebanho",
         action: null
     },
-    "Sao Bernardo":{
-        name: "Sao Bernardo",
+    "SAO_BERNARDO":{
+        name: "São Bernardo",
         description: 
             "Apesar de sua aparência assustadora, vocẽ é o animal mais confiavel dessa fazenda "+
             "seu objetivo é proteger as ovelhas indefesas durante a noite",
@@ -44,15 +45,16 @@ const Roles = {
             try{
                 const Target = Room.players[TargetID]
                 if(!Target){
-                    return {erro: "Jogador "+TargetID+" não existe na sala: "+ Room.code}
+                    throw new Error("Jogador "+TargetID+" não existe na sala: "+ Room.code)
                 }
-                if(Target.player_state.toUpperCase() == "MORTO"){
-                    return {erro: "Jogador "+Target.name+" ja esta morto"}
+                if(Target.player_state.toUpperCase() == "DEAD"){
+                    throw new Error("Jogador "+Target.name+" ja esta morto")
                 }
-                Target.player_effect.push("SALVAR") //Adicionar "PROTEGER" na lista de efeitos do jogador
+                Target.player_effect.push("PROTECT") //Adicionar "PROTECT" na lista de efeitos do jogador
                 return { ok: true }
-            }catch(erro){
-                return { erro }
+            }catch(error){
+                console.log(error)
+                return { error }
             }
         }
     }

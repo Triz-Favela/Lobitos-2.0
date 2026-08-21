@@ -1,5 +1,5 @@
 import { createClient } from 'redis'
-import { Room } from "../constants/CustomTypes"
+import { Room } from "../types/Rooms"
 import dotenv from "dotenv"
 dotenv.config()
 
