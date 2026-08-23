@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { ConnectDB } from "./database/mongo";
-import { ConnectDBCache } from "./database/redis";
+import { ConnectDB } from "./database/mainDB";
+import { ConnectDBCache } from "./database/cacheDB";
 
 // const jogadorRoutes = require('./src/routes/JogadorRoutes');//importa as rotas do CRUD de jogadores
 // const jogoRoutes = require('./src/routes/JogoRoutes');//importa as rotas das salas

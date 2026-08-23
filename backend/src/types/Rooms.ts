@@ -1,77 +1,86 @@
-const roles = ["OVELHA", "LOBO", "SAO_BERNARDO"] as const
-type role = typeof roles[number]
+const Roles = ["OVELHA", "LOBO", "SAO_BERNARDO"] as const
+type Role = typeof Roles[number]
 
-type vote = {
+type Vote = {
   from: string
   to: string
 }
 
-type message = {
+type Message = {
   from: string
   text: string
 }
 
-type privacy = "PUBLIC" | "PRIVATE"
-type room_state = "WAITING" | "NIGHT" | "DAY"
+type Privacy = "PUBLIC" | "PRIVATE"
+type RoomState = "WAITING" | "NIGHT" | "DAY" | "INTERLUDE"
 
+
+// TODO: Talvez mudar a estrutura para que todas as configuraçẽos 
+// estejam em uma unica propriedade "config", um objeto que guarda 
+// as opçẽos como privacidade, stalemate resolver e etc
 interface Room {
   code: string
-  privacy: privacy
-  room_state: room_state
+  privacy: Privacy
+  room_state: RoomState
   player_quantity: number
   host: string
   players: Record<string, Player>,
   roles: ConfigRole[],
-  votes: vote[],
-  chat: message[],
+  votes: Vote[],
+  chat: Message[],
   round: number
 }
 
 interface TreatedRoom {
     code: string
-    privacy: privacy
-    room_state: room_state
+    privacy: Privacy
+    room_state: RoomState
     player_quantity: number
     host: string
     players: Record<string, TreatedPlayer>
 }
 
 type ConfigRole = {
-    name: role
+    name: Role
     quantity: number
 }
 
 interface RoomConfig {
-    privacy: privacy
-    roles: ConfigRole[]
+    privacy?: Privacy
+    roles?: ConfigRole[]
 }
 
 
 // E aqui, os tipos especificos e a estrutura do objeto do jogador
+// NOTE: Um usuário só passa a ser "Player" quando entra na partida/Sala
+// A estrtura de "Player" só existe dentro de um objeto de sala, 
+// em outros lugares do site, ele é tratado como usuario "./User.ts"
 
-const player_effects = ["KILL", "PROTECT"] as const
-type player_effect = typeof player_effects[number]
-type player_state = "READY" | "NOT_READY" | "DEAD"
+
+const PlayerEffects = ["KILL", "PROTECT"] as const
+type PlayerEffect = typeof PlayerEffects[number]
+type PlayerState = "READY" | "NOT_READY" | "DEAD"
 
 interface Player {
   id: string
   socket_id: string
   name: string
-  role: role | null
-  player_state: player_state
-  player_effect: player_effect[] 
+  role: Role | null
+  player_state: PlayerState
+  player_effects: PlayerEffect[] 
 }
 
 interface TreatedPlayer {
     id: string
     socket_id: string
     name: string
-    player_state: player_state
+    player_state: PlayerState
 }
 
 
 export { 
     Room, Player, 
     TreatedRoom, TreatedPlayer,
-    RoomConfig
+    RoomConfig, ConfigRole,
+    RoomState
 }

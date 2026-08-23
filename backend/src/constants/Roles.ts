@@ -19,7 +19,7 @@ const Roles = {
                 if(Target.role && Roles[Target.role].team.toUpperCase() == "LOBOS"){
                     throw new Error("Lobo não pode atacar alguem da propria equipe")
                 }
-                Target.player_effect.push("KILL") //Adicionar "KILL" na lista de efeitos do jogador
+                Target.player_effects.push("KILL") //Adicionar "KILL" na lista de efeitos do jogador
                 return { ok: true }
             }catch(error){
                 console.log(error)
@@ -50,7 +50,7 @@ const Roles = {
                 if(Target.player_state.toUpperCase() == "DEAD"){
                     throw new Error("Jogador "+Target.name+" ja esta morto")
                 }
-                Target.player_effect.push("PROTECT") //Adicionar "PROTECT" na lista de efeitos do jogador
+                Target.player_effects.push("PROTECT") //Adicionar "PROTECT" na lista de efeitos do jogador
                 return { ok: true }
             }catch(error){
                 console.log(error)
