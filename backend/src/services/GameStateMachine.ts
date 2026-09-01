@@ -1,14 +1,19 @@
-import { Player, Room, RoomState } from "../types/Rooms";
+import { Result } from "../types/Result";
+import { Room } from "../types/Rooms";
+import { AssignRoles } from "./GameManager";
 
 // TODO: Adicionar uma função pra checar o fim de jogo
 
+// TODO: No final de cada turno, checar os players ativos asinda, e só então "sanitizar" a sala
+// colocar como morto players desconectados, assim, evitando conflitos
 
-const AdvanceRoomState = (Room: Room) => {
+const AdvanceRoomState = (Room: Room): Result<{DeadPlayers: string[]}> => {
     try{
         var DeadPlayers: string[] = []
         switch(Room.room_state){
             case "WAITING":
                 Room.room_state = "NIGHT"
+                AssignRoles(Room)
                 Room.round += 1
                 break;
             case "NIGHT":
@@ -25,12 +30,17 @@ const AdvanceRoomState = (Room: Room) => {
                 Room.room_state = "DAY"
                 break;
             case "DAY":
-                const VoteResult = ProcessVote(Room)
+                const result = ProcessVote(Room)
+                if(!result.ok){
+                    return result
+                }
+                const VoteResult = result.data?.VoteResult!
+
                 if(VoteResult !== "STALEMATE"){
                     Room.players[VoteResult]!.player_state = "DEAD"
                     DeadPlayers.push(VoteResult)
                 }
-                Room.votes = []
+                Room.votes = {}
                 Room.chat = []
                 Room.room_state = "NIGHT"
                 Room.round += 1
@@ -45,18 +55,23 @@ const AdvanceRoomState = (Room: Room) => {
         })
 
 
-        return {ok: true, data: {Room, DeadPlayers}}
+        return {ok: true, data: {DeadPlayers}}
 
     }catch(error){
-
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        console.log(error);
+        return { ok: false, error: message };
     }
 }
 
-const ProcessVote = (Room: Room) => {
+const ProcessVote = (Room: Room): Result<{VoteResult: string}> => {
     try{
         let VoteCount: Record<string, number> = {}
-        Room.votes.forEach(vote => {
-            const Target = vote.to
+        Object.values(Room.votes).forEach(vote => {
+            const Target = vote.target
+            if(!Target){
+                return
+            }
             if(!VoteCount[Target]){
                 VoteCount[Target] = 0
             }
@@ -88,11 +103,16 @@ const ProcessVote = (Room: Room) => {
             VoteResult = BannedPlayer[0]!
         }
         
-        return VoteResult
+        return {ok: true, data:{VoteResult}}
 
     }catch(error){
-        console.log(error)
-        return "STALEMATE"
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        console.log(error);
+        return { ok: false, error: message };
     }
 
+}
+
+export { 
+    AdvanceRoomState 
 }

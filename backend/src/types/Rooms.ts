@@ -2,8 +2,7 @@ const Roles = ["OVELHA", "LOBO", "SAO_BERNARDO"] as const
 type Role = typeof Roles[number]
 
 type Vote = {
-  from: string
-  to: string
+  target: string | null
 }
 
 type Message = {
@@ -26,7 +25,7 @@ interface Room {
   host: string
   players: Record<string, Player>,
   roles: ConfigRole[],
-  votes: Vote[],
+  votes: Record<string, Vote>,
   chat: Message[],
   round: number
 }
@@ -65,6 +64,7 @@ interface Player {
   id: string
   socket_id: string
   name: string
+  tag: string
   role: Role | null
   player_state: PlayerState
   player_effects: PlayerEffect[] 
@@ -74,6 +74,7 @@ interface TreatedPlayer {
     id: string
     socket_id: string
     name: string
+    tag: string
     player_state: PlayerState
 }
 
@@ -81,6 +82,6 @@ interface TreatedPlayer {
 export { 
     Room, Player, 
     TreatedRoom, TreatedPlayer,
-    RoomConfig, ConfigRole,
+    RoomConfig, ConfigRole, Role, Vote,
     RoomState
 }

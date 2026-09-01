@@ -3,6 +3,7 @@ import { TreatedRoom, TreatedPlayer, Room, RoomConfig, Player, ConfigRole } from
 import { User } from "../types/User"
 import { DeleteRoom, ListRooms, SaveRoom, SearchRoom } from "../database/cacheDB";
 import { Roles } from "../constants/Roles";
+import { AsyncResult } from "../types/Result";
 
 const TreatRoom = (Room: Room) => {
   // Trata primeiro a lista de jogadores, faz com q a sala tratada nn tenha informações "sensiveis"
@@ -15,6 +16,7 @@ const TreatRoom = (Room: Room) => {
           id: Player.id,
           socket_id: Player.socket_id,
           name: Player.name,
+          tag: Player.tag,
           player_state : Player.player_state
         }
         return [PlayerID, TreatedPlayer]
@@ -50,20 +52,24 @@ const ListPublicRooms = async () => {
   return TreatedRooms
 }
 
-const GetRoom = async (code: string) => {
+const GetRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }> => {
   try{
     const RawRoom = await SearchRoom(code)
     if(!RawRoom){
       throw new Error("Sala não encontrada")
     }
-    return TreatRoom(RawRoom)
+
+    return { ok: true, data: { Room: TreatRoom(RawRoom) }}
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const CreateRoom = async (socket: Socket, user: User, config: RoomConfig = {privacy: "PUBLIC", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}) => {
+
+
+const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}): AsyncResult<{ Room: string; }> => {
   try{
     if(!config.privacy || !config.roles){
       throw new Error("A configuração inicial da sala precisa ter privacidade e papeis")
@@ -99,23 +105,24 @@ const CreateRoom = async (socket: Socket, user: User, config: RoomConfig = {priv
       host: user.id,
       players: {},
       roles: config.roles,
-      votes: [],
+      votes: {},
       chat: [],
       round: 0
     }
 
     await SaveRoom(NewRoom)
-    //TODO: eu nn achei no codigo antigo a parte do codigo em que te coloca na sala que vc criou
+    //FIXME: eu nn achei no codigo antigo a parte do codigo em que te coloca na sala que vc criou
     // ent procurar um pouco mais e se nn achar colocar ela aqui
 
-    return { ok: true, data:{Room: code, message: `Sala ${code} criada com sucesso`}}
+    return { ok: true, data:{Room: code}}
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const JoinRoom = async (socket: Socket, user: User, code: string) => {
+const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{ Room: string; }> => {
   try{
     //NOTE: Tenho q rever esse metodo de checar a quantidade de salas que o player ta conectado pelo socket
     // minha ideia é ter mais de uma sala pra q tenha mais de um chat, chat dos lobos e chat principal, por exemplo
@@ -141,7 +148,8 @@ const JoinRoom = async (socket: Socket, user: User, code: string) => {
     const NewPlayer: Player = {
       id: user.id,
       socket_id: socket.id,
-      name: user.name + user.tag,
+      name: user.name,
+      tag: user.tag,
       role: null,
       player_state: "NOT_READY",
       player_effects: []
@@ -151,15 +159,16 @@ const JoinRoom = async (socket: Socket, user: User, code: string) => {
     socket.join(`${code}_GERAL`)
 
     await SaveRoom(Room)  
-    return { ok: true, data: { Room: code, message: `Jogador ${user.name}#${user.tag} entrou na sala ${code}` }}  
+    return { ok: true, data: { Room: code }}  
 
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const LeaveRoom = async (socket: Socket, user: User, code: string) => {
+const LeaveRoom = async (socket: Socket, user: User, code: string): AsyncResult => {
   try{
     const Room = await SearchRoom(code)
     if(!Room){
@@ -185,19 +194,20 @@ const LeaveRoom = async (socket: Socket, user: User, code: string) => {
 
     if(Object.keys(Room.players).length <= 0){
       await DeleteRoom(code)
-      return {ok: true, data:{message:`${user.name}#${user.tag} foi o ultimo a sair da sala ${code}, sala deletada`}}
     }else{
       await SaveRoom(Room)
-      return {ok: true, data:{message:`${user.name}#${user.tag} saiu da sala ${code} com sucesso`}}
     }
 
+    return {ok: true}
+
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const ReconnectToRoom = async (socket: Socket, user: User, code: string) => {
+const ReconnectToRoom = async (socket: Socket, user: User, code: string): AsyncResult<{Room: string}> => {
   try{
     const Room = await SearchRoom(code)
     if(!Room){
@@ -213,14 +223,15 @@ const ReconnectToRoom = async (socket: Socket, user: User, code: string) => {
     socket.join(`${code}_GERAL`)
     await SaveRoom(Room)
     socket.to(`${code}_GERAL`).emit('Reconnected', PlayerInRoom)
-    return {ok: true, data:{Room: code, message:`Jogador ${user.name}#${user.tag} se reconectou na sala ${code}`}}
+    return {ok: true, data:{Room: code}}
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {}) => {
+const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {}): AsyncResult<{Room: string}> => {
   try{
     const Room = await SearchRoom(code)
     if(!Room){
@@ -270,15 +281,16 @@ const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {
       }
     }
     await SaveRoom(Room)
-    return { ok: true, data: {Room: code, message: `Configurações da sala ${code} ajustadas com sucesso`}}
+    return { ok: true, data: {Room: code}}
 
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
-const ToggleReady = async (user: User, code: string) => {
+const ToggleReady = async (user: User, code: string): AsyncResult => {
   try{
     const Room = await SearchRoom(code)
     if(!Room){
@@ -296,8 +308,9 @@ const ToggleReady = async (user: User, code: string) => {
     return {ok: true}
 
   }catch(error){
-    console.log(error)
-    return error
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    console.log(error);
+    return { ok: false, error: message };
   }
 }
 
