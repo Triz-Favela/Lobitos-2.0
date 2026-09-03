@@ -1,13 +1,10 @@
-const Roles = ["OVELHA", "LOBO", "SAO_BERNARDO"] as const
-type Role = typeof Roles[number]
+import { Message } from "./Chat"
+import { Player, TreatedPlayer } from "./Player"
+
+type Role = "OVELHA" | "LOBO" | "SAO_BERNARDO"
 
 type Vote = {
   target: string | null
-}
-
-type Message = {
-  from: string
-  text: string
 }
 
 type Privacy = "PUBLIC" | "PRIVATE"
@@ -50,38 +47,9 @@ interface RoomConfig {
 }
 
 
-// E aqui, os tipos especificos e a estrutura do objeto do jogador
-// NOTE: Um usuário só passa a ser "Player" quando entra na partida/Sala
-// A estrtura de "Player" só existe dentro de um objeto de sala, 
-// em outros lugares do site, ele é tratado como usuario "./User.ts"
-
-
-const PlayerEffects = ["KILL", "PROTECT"] as const
-type PlayerEffect = typeof PlayerEffects[number]
-type PlayerState = "READY" | "NOT_READY" | "DEAD"
-
-interface Player {
-  id: string
-  socket_id: string
-  name: string
-  tag: string
-  role: Role | null
-  player_state: PlayerState
-  player_effects: PlayerEffect[] 
-}
-
-interface TreatedPlayer {
-    id: string
-    socket_id: string
-    name: string
-    tag: string
-    player_state: PlayerState
-}
-
-
 export { 
-    Room, Player, 
-    TreatedRoom, TreatedPlayer,
+    Room,
+    TreatedRoom,
     RoomConfig, ConfigRole, Role, Vote,
     RoomState
 }

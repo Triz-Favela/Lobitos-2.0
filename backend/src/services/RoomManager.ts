@@ -1,5 +1,6 @@
 import { Socket } from "socket.io";
-import { TreatedRoom, TreatedPlayer, Room, RoomConfig, Player, ConfigRole } from "../types/Rooms";
+import { TreatedPlayer, Player } from "../types/Player";
+import { TreatedRoom, Room, RoomConfig} from "../types/Rooms";
 import { User } from "../types/User"
 import { DeleteRoom, ListRooms, SaveRoom, SearchRoom } from "../database/cacheDB";
 import { Roles } from "../constants/Roles";
