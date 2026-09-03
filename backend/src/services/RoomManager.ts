@@ -53,7 +53,7 @@ const ListPublicRooms = async () => {
   return TreatedRooms
 }
 
-const GetRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }> => {
+const GetTreatedRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }> => {
   try{
     const RawRoom = await SearchRoom(code)
     if(!RawRoom){
@@ -70,7 +70,7 @@ const GetRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }> => {
 
 
 
-const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}): AsyncResult<{ Room: string; }> => {
+const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}): AsyncResult<{ RoomCode: string; }> => {
   try{
     if(!config.privacy || !config.roles){
       throw new Error("A configuração inicial da sala precisa ter privacidade e papeis")
@@ -115,7 +115,7 @@ const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", r
     //FIXME: eu nn achei no codigo antigo a parte do codigo em que te coloca na sala que vc criou
     // ent procurar um pouco mais e se nn achar colocar ela aqui
 
-    return { ok: true, data:{Room: code}}
+    return { ok: true, data:{RoomCode: code}}
   }catch(error){
     const message = error instanceof Error ? error.message : "Erro desconhecido";
     console.log(error);
@@ -123,7 +123,7 @@ const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", r
   }
 }
 
-const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{ Room: string; }> => {
+const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{ RoomCode: string; }> => {
   try{
     //NOTE: Tenho q rever esse metodo de checar a quantidade de salas que o player ta conectado pelo socket
     // minha ideia é ter mais de uma sala pra q tenha mais de um chat, chat dos lobos e chat principal, por exemplo
@@ -160,7 +160,7 @@ const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{
     socket.join(`${code}_GERAL`)
 
     await SaveRoom(Room)  
-    return { ok: true, data: { Room: code }}  
+    return { ok: true, data: { RoomCode: code }}  
 
   }catch(error){
     const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -326,7 +326,7 @@ const GetRandomCode = () => {
 
 export { 
   ListPublicRooms, 
-  GetRoom, 
+  GetTreatedRoom, 
   CreateRoom,
   JoinRoom,
   LeaveRoom,

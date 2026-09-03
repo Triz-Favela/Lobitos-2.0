@@ -187,5 +187,6 @@ export {
     AssignRoles,
     UseAbility,
     SendMessage,
-    Vote
+    Vote,
+    AllPlayersReady
 }
