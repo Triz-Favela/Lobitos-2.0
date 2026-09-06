@@ -11,6 +11,8 @@ import { createServer } from "node:http";
 import { Server } from "socket.io";
 //const GameSocket = require('./src/sockets/GameSocket.js') //importa o "GameSocket", onde a lógica do jogo existe
 import dotenv from "dotenv"
+import SocketManager from "./Socket/SocketManager";
+import { UserRoutes } from "./routes/UserRoutes";
 dotenv.config()
 
 const app = express();
@@ -20,7 +22,7 @@ ConnectDBCache();
 //* Configuração do socket.io
 const server = createServer(app) //cria o server "cru" a partir do express
 const io = new Server(server, {connectionStateRecovery: {}});//"connectionRecovery" lida com breves desconexões
-//GameSocket(io) //envia o "io", objeto principal do socket.io, como parametro pro GameSocket.io
+SocketManager(io)
 
 //* Middlewares
 app.use(cors());
@@ -33,7 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //* Rotas da API
-// app.use('/api', jogadorRoutes);
+app.use('/api', UserRoutes);
 // app.use('/api', jogoRoutes);
 
 const PORT = process.env.PORT || 3000;

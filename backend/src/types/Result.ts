@@ -1,8 +1,8 @@
-type Result<T = void> = 
-  | { ok: true; data?: T }
+type Result = 
+  | { ok: true; data?: any }
   | { ok: false; error: string };
 
-type AsyncResult<T = void> = Promise<Result<T>>;
+type AsyncResult = Promise<Result>;
 
 export { 
     Result, 

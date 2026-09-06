@@ -2,9 +2,10 @@ import { Socket } from "socket.io";
 import { TreatedPlayer, Player } from "../types/Player";
 import { TreatedRoom, Room, RoomConfig} from "../types/Rooms";
 import { User } from "../types/User"
-import { DeleteRoom, ListRooms, SaveRoom, SearchRoom } from "../database/cacheDB";
+import { DeleteRoom, FetchRoom, ListRooms, SaveRoom } from "../database/cacheDB";
 import { Roles } from "../constants/Roles";
 import { AsyncResult } from "../types/Result";
+import { AdvanceRoomState } from "./GameStateMachine";
 
 const TreatRoom = (Room: Room) => {
   // Trata primeiro a lista de jogadores, faz com q a sala tratada nn tenha informações "sensiveis"
@@ -53,13 +54,16 @@ const ListPublicRooms = async () => {
   return TreatedRooms
 }
 
-const GetTreatedRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }> => {
+const GetTreatedRoom = async (user: User, code: string ): AsyncResult => {
   try{
-    const RawRoom = await SearchRoom(code)
+    const RawRoom = await FetchRoom(code)
     if(!RawRoom){
       throw new Error("Sala não encontrada")
     }
-
+    const PlayerInRoom = RawRoom.players[user.id]
+    if(RawRoom.privacy == "PRIVATE" && !PlayerInRoom){
+      throw new Error("Sala não encontrada")
+    }
     return { ok: true, data: { Room: TreatRoom(RawRoom) }}
   }catch(error){
     const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -70,7 +74,7 @@ const GetTreatedRoom = async (code: string): AsyncResult<{ Room: TreatedRoom; }>
 
 
 
-const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}): AsyncResult<{ RoomCode: string; }> => {
+const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", password: "", roles: [{name: "LOBO", quantity: 1},{name: "SAO_BERNARDO", quantity: 1}, {name: "OVELHA", quantity: 2}]}): AsyncResult => {
   try{
     if(!config.privacy || !config.roles){
       throw new Error("A configuração inicial da sala precisa ter privacidade e papeis")
@@ -101,6 +105,7 @@ const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", r
     const NewRoom: Room = {
       code: code,
       privacy: config.privacy,
+      password: config.password? config.password : "",
       room_state: "WAITING",
       player_quantity: totalPlayers,
       host: user.id,
@@ -123,16 +128,21 @@ const CreateRoom = async (user: User, config: RoomConfig = {privacy: "PUBLIC", r
   }
 }
 
-const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{ RoomCode: string; }> => {
+const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult => {
   try{
     //NOTE: Tenho q rever esse metodo de checar a quantidade de salas que o player ta conectado pelo socket
     // minha ideia é ter mais de uma sala pra q tenha mais de um chat, chat dos lobos e chat principal, por exemplo
     // algo como uma sala do socket "CODIGO_GERAL" "CODIGO_LOBOS" e etc, escalavel pra caso queira algum outro papel
     // com habilidades mais especificas talvez
+
+    // TODO: Implementar o sistema de senhas, percebi que fazer com que a sala só nn apareça na listagem de salas
+    // caso ela nn for pública nn é muito seguro, pq um usuario ainda vai poder tentar usar do método "GetRoomState"
+    // pra saber se a sala existe ou não, e entrar nela enviando os dados de usuário junto do código que ele encontrou
+    // EDIT: Talvez eu possa só nn mostrar pra ele que a sala existe né, ent esquece lol :P
     if(socket.rooms.size > 1){
       throw new Error("tentou entrar em uma sala enaquanto já estava em outra sala")
     }
-    const Room = await SearchRoom(code)
+    const Room = await FetchRoom(code)
     if(!Room){
       throw new Error(`Sala ${code} não encontrada`)
     }
@@ -171,7 +181,7 @@ const JoinRoom = async (socket: Socket, user: User, code: string): AsyncResult<{
 
 const LeaveRoom = async (socket: Socket, user: User, code: string): AsyncResult => {
   try{
-    const Room = await SearchRoom(code)
+    const Room = await FetchRoom(code)
     if(!Room){
       throw new Error(`Sala ${code} não encontrada`)
     }
@@ -208,9 +218,9 @@ const LeaveRoom = async (socket: Socket, user: User, code: string): AsyncResult 
   }
 }
 
-const ReconnectToRoom = async (socket: Socket, user: User, code: string): AsyncResult<{Room: string}> => {
+const ReconnectToRoom = async (socket: Socket, user: User, code: string): AsyncResult => {
   try{
-    const Room = await SearchRoom(code)
+    const Room = await FetchRoom(code)
     if(!Room){
       throw new Error(`Sala ${code} não encontrada`)
     }
@@ -232,9 +242,9 @@ const ReconnectToRoom = async (socket: Socket, user: User, code: string): AsyncR
   }
 }
 
-const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {}): AsyncResult<{Room: string}> => {
+const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {}): AsyncResult => {
   try{
-    const Room = await SearchRoom(code)
+    const Room = await FetchRoom(code)
     if(!Room){
       throw new Error(`Sala ${code} não encontrada`)
     }
@@ -293,7 +303,7 @@ const ChangeRoomConfig = async (user: User, code: string, config: RoomConfig = {
 
 const ToggleReady = async (user: User, code: string): AsyncResult => {
   try{
-    const Room = await SearchRoom(code)
+    const Room = await FetchRoom(code)
     if(!Room){
       throw new Error(`Sala ${code} não encontrada`)
     }
@@ -315,6 +325,45 @@ const ToggleReady = async (user: User, code: string): AsyncResult => {
   }
 }
 
+const StartGame = async (user: User, code: string): AsyncResult => {
+  try{
+    const Room = await FetchRoom(code)
+    if(!Room){
+      throw new Error(`Sala ${code} não encontrada`)
+    }
+    const PlayerInRoom = Room.players[user.id]
+    if(!PlayerInRoom){
+      throw new Error(`Jogador ${user.name}#${user.tag} não existe na sala ${code}`)
+    }
+    if(Room.host != user.id){
+      throw new Error(`Apenas o anfitrião da sala pode começar a partida`)
+    }
+    if(Object.keys(Room.players).length != Room.player_quantity){
+      throw new Error(`A quantidade de jogadores não bate com a quantidade de papeis no jogo`)
+    }
+    if(Room.room_state != "WAITING"){
+      throw new Error(`A partida ja foi iniciada`)
+    }
+
+    PlayerInRoom.player_state = "READY"
+    for(const p of Object.values(Room.players)){
+      if(p.player_state != "READY"){
+        PlayerInRoom.player_state = "NOT_READY"
+        throw new Error(`Todos os jogadores tem que estar prontos`)
+      }
+    }
+
+    const result = AdvanceRoomState(Room)
+    if(result.ok){
+      await SaveRoom(Room)
+    }
+    return result
+  }catch(error){
+    const message = error instanceof Error ? error.message : 'Erro desconhecido';
+    return { ok: false, error: message };
+  }
+}
+
 const GetRandomCode = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     var code = ''
@@ -332,5 +381,6 @@ export {
   LeaveRoom,
   ReconnectToRoom,
   ToggleReady,
-  ChangeRoomConfig
+  ChangeRoomConfig,
+  StartGame
 }

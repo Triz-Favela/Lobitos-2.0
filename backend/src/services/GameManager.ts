@@ -1,9 +1,11 @@
 import { AsyncResult, Result } from "../types/Result";
 import { Role, Room, Vote } from "../types/Rooms";
-import { SaveRoom, SearchRoom } from "../database/cacheDB";
+import { SaveRoom, FetchRoom } from "../database/cacheDB";
 import { User } from "../types/User";
 import { Roles } from "../constants/Roles";
 import { ChatGroup, Message } from "../types/Chat";
+import { Player } from "../types/Player";
+import { AdvanceRoomState } from "./GameStateMachine";
 
 const AssignRoles = (Room: Room): Result => {
     try{
@@ -32,7 +34,7 @@ const AssignRoles = (Room: Room): Result => {
 
 const UseAbility = async (user: User, code: string, targetID: string | null = null): AsyncResult => {
     try{
-        const Room = await SearchRoom(code)
+        const Room = await FetchRoom(code)
         if(!Room){
             throw new Error(`Sala ${code} não encontrada`)
         }
@@ -70,10 +72,13 @@ const UseAbility = async (user: User, code: string, targetID: string | null = nu
             throw new Error(AbilityResult.error)
         }
 
-        PlayerInRoom.player_state = "READY"
+        const PlayerReadyResult = SetPlayerReady(PlayerInRoom, Room)
+        if(!PlayerReadyResult.ok){
+            throw new Error(PlayerReadyResult.error)
+        }
 
         await SaveRoom(Room)
-        return {ok: true}
+        return PlayerReadyResult
 
     }catch(error){
         const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -83,27 +88,9 @@ const UseAbility = async (user: User, code: string, targetID: string | null = nu
     }
 }
 
-const AllPlayersReady = (Room: Room): Result => {
+const Vote = async (user: User, code: string, targetID: string|null): AsyncResult => {
     try{
-        const players = Room.players
-        for(const player of Object.values(players)){
-             if(player.player_state = "DEAD"){
-                continue
-            }
-            if(player.player_state = "NOT_READY"){
-                throw new Error(`Nem todos os jogadores estão prontos`)
-            }
-        }
-        return {ok: true}
-    }catch(error){
-        const message = error instanceof Error ? error.message : 'Erro desconhecido';
-        return { ok: false, error: message };
-    }
-}
-
-const Vote = async (user: User, code: string, targetID: string): AsyncResult => {
-    try{
-        const Room = await SearchRoom(code)
+        const Room = await FetchRoom(code)
         if(!Room){
             throw new Error(`Sala ${code} não encontrada`)
         }
@@ -126,7 +113,8 @@ const Vote = async (user: User, code: string, targetID: string): AsyncResult => 
             target: null
         }
 
-        const Target = Room.players[targetID]
+
+        const Target = targetID? Room.players[targetID] : null
         if(Target){
             if(Target.player_state == "DEAD"){
                 throw new Error(`Jogador com id "${Target}" ja está morto`)
@@ -137,8 +125,13 @@ const Vote = async (user: User, code: string, targetID: string): AsyncResult => 
         }
 
         Room.votes[user.id] = vote
+
+        const PlayerReadyResult = SetPlayerReady(PlayerInRoom, Room)
+        if(!PlayerReadyResult.ok){
+            throw new Error(PlayerReadyResult.error)
+        }
+
         await SaveRoom(Room)
-        
         return {ok: true}
     }catch(error){
         const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -149,7 +142,7 @@ const Vote = async (user: User, code: string, targetID: string): AsyncResult => 
 
 const SendMessage = async (user: User, code: string, text: string, to: ChatGroup = "GERAL"): AsyncResult => {
     try{
-        const Room = await SearchRoom(code)
+        const Room = await FetchRoom(code)
         if(!Room){
             throw new Error(`Sala ${code} não encontrada`)
         }
@@ -166,7 +159,7 @@ const SendMessage = async (user: User, code: string, text: string, to: ChatGroup
 
         Room.chat.push(message)
         await SaveRoom(Room)
-        return {ok: true}
+        return {ok: true, data: {message}}
     }catch(error){
         const message = error instanceof Error ? error.message : 'Erro desconhecido';
         return { ok: false, error: message };
@@ -180,6 +173,41 @@ const ShuffleArray = (Array: string[]) => {
         index--
 
         [Array[index], Array[random]] = [Array[random]!, Array[index]!]
+    }
+}
+
+
+const SetPlayerReady = (Player: Player, Room: Room): Result => {
+    try{
+        Player.player_state = "READY"
+        
+        if(AllPlayersReady(Room).ok){
+            const result = AdvanceRoomState(Room)
+            return result
+        }
+        return {ok: true}
+    }catch(error){
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        console.log(error);
+        return { ok: false, error: message };
+    }
+}
+
+const AllPlayersReady = (Room: Room): Result => {
+    try{
+        const players = Room.players
+        for(const player of Object.values(players)){
+             if(player.player_state = "DEAD"){
+                continue
+            }
+            if(player.player_state = "NOT_READY"){
+                throw new Error(`Nem todos os jogadores estão prontos`)
+            }
+        }
+        return {ok: true}
+    }catch(error){
+        const message = error instanceof Error ? error.message : 'Erro desconhecido';
+        return { ok: false, error: message };
     }
 }
 

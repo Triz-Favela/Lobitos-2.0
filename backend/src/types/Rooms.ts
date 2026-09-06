@@ -17,6 +17,7 @@ type RoomState = "WAITING" | "NIGHT" | "DAY" | "INTERLUDE"
 interface Room {
   code: string
   privacy: Privacy
+  password: string
   room_state: RoomState
   player_quantity: number
   host: string
@@ -43,6 +44,7 @@ type ConfigRole = {
 
 interface RoomConfig {
     privacy?: Privacy
+    password?: string
     roles?: ConfigRole[]
 }
 

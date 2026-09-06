@@ -33,7 +33,7 @@ async function SaveRoom(Room: Room){
     return Room
 }
 
-async function SearchRoom(code: string): Promise<Room | null> {
+async function FetchRoom(code: string): Promise<Room | null> {
     if (!redis.isOpen) {
         await ConnectDBCache()
     }
@@ -70,7 +70,7 @@ async function ListRooms() {
 export {
     ConnectDBCache,
     SaveRoom,
-    SearchRoom,
+    FetchRoom,
     DeleteRoom,
     ListRooms
 }

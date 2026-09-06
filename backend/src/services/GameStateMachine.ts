@@ -7,7 +7,8 @@ import { AssignRoles } from "./GameManager";
 // TODO: No final de cada turno, checar os players ativos asinda, e só então "sanitizar" a sala
 // colocar como morto players desconectados, assim, evitando conflitos
 
-const AdvanceRoomState = (Room: Room): Result<{DeadPlayers: string[]}> => {
+//const AdvanceRoomState = (Room: Room): Result<{DeadPlayers: string[]}> => {
+const AdvanceRoomState = (Room: Room): Result => {
     try{
         var DeadPlayers: string[] = []
         switch(Room.room_state){
@@ -55,7 +56,7 @@ const AdvanceRoomState = (Room: Room): Result<{DeadPlayers: string[]}> => {
         })
 
 
-        return {ok: true, data: {DeadPlayers}}
+        return {ok: true, data: {AdvancedRoomState: true, DeadPlayers}}
 
     }catch(error){
         const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -64,7 +65,7 @@ const AdvanceRoomState = (Room: Room): Result<{DeadPlayers: string[]}> => {
     }
 }
 
-const ProcessVote = (Room: Room): Result<{VoteResult: string}> => {
+const ProcessVote = (Room: Room): Result => {
     try{
         let VoteCount: Record<string, number> = {}
         Object.values(Room.votes).forEach(vote => {
@@ -114,5 +115,5 @@ const ProcessVote = (Room: Room): Result<{VoteResult: string}> => {
 }
 
 export { 
-    AdvanceRoomState 
+    AdvanceRoomState
 }
